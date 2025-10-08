@@ -1,20 +1,20 @@
 <?php
 // edittransaction.php - Page to edit pending transactions
 
-$root = $_SERVER['DOCUMENT_ROOT'] . '/pettycashsystem';
-require_once $root . '/config.php';
-require_once $root . '/functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-if (!$pettyCashSystem->isLoggedIn()) {
-    PettyCashSystem::redirect('index.php');
-}
+// Require login
+$pettyCashSystem->requireLogin();
 
 $pageTitle = "Edit Transaction";
 include 'header.php';
 
 $transactionId = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$transaction = PettyCashSystem::getTransaction($transactionId);
+$transaction = $pettyCashSystem->getTransaction($transactionId);
 
+// Check if transaction exists and user has permission to edit
 if (!$transaction) {
     echo "<div class='container'><div class='alert alert-danger'>Transaction not found.</div></div>";
     include 'footer.php';
@@ -27,35 +27,35 @@ if ($transaction['user_id'] != $_SESSION['user_id'] || $transaction['status'] !=
     exit;
 }
 
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $category = PettyCashSystem::sanitize($_POST['category']);
+    $category = $pettyCashSystem->sanitize($_POST['category']);
     $amount = floatval($_POST['amount']);
-    $description = PettyCashSystem::sanitize($_POST['description']);
-    $transaction_date = PettyCashSystem::sanitize($_POST['transaction_date']);
+    $description = $pettyCashSystem->sanitize($_POST['description']);
+    $transaction_date = $pettyCashSystem->sanitize($_POST['transaction_date']);
     
     $errors = [];
     
     if (empty($category)) $errors[] = "Category is required";
-    if (!PettyCashSystem::validateAmount($amount)) $errors[] = "Valid amount is required";
+    if (!$pettyCashSystem->validateAmount($amount)) $errors[] = "Valid amount is required";
     if (empty($description)) $errors[] = "Description is required";
     if (empty($transaction_date)) $errors[] = "Transaction date is required";
     
-    if ($transaction['type'] === 'expense' && !PettyCashSystem::checkExpenseLimit($amount)) {
-        $errors[] = "Expense amount exceeds single transaction limit of " . PettyCashSystem::formatCurrency(MAX_SINGLE_EXPENSE);
+    if ($transaction['type'] === 'expense' && !$pettyCashSystem->checkExpenseLimit($amount)) {
+        $errors[] = "Expense amount exceeds single transaction limit of " . $pettyCashSystem->formatCurrency(MAX_SINGLE_EXPENSE);
     }
     
     if (empty($errors)) {
-        global $db;
+        $db = new Database();
         $sql = "UPDATE transactions 
                 SET category = ?, amount = ?, description = ?, transaction_date = ?, updated_at = NOW() 
                 WHERE id = ?";
         
-        $result = $db->query($sql, [$category, $amount, $description, $transaction_date, $transactionId]);
+        $result = $db->executeQuery($sql, [$category, $amount, $description, $transaction_date, $transactionId]);
         
         if ($result) {
-            PettyCashSystem::logActivity("transaction_updated", "Updated transaction #$transactionId");
             $_SESSION['success_message'] = "Transaction updated successfully!";
-            PettyCashSystem::redirect('viewtransaction.php?id=' . $transactionId);
+            $pettyCashSystem->redirect('viewtransaction.php?id=' . $transactionId);
         } else {
             $errors[] = "Failed to update transaction. Please try again.";
         }

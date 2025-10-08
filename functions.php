@@ -1,7 +1,8 @@
 <?php
-// functions.php - Petty Cash System - Fixed
+// functions.php - Petty Cash System - With authentication
 
 require_once 'db.php';
+
 class PettyCashSystem {
     private $db;
     
@@ -9,20 +10,36 @@ class PettyCashSystem {
         $this->db = new Database();
     }
     
-    public static function isAdmin() {
-        return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
-    }
-    public static function isApprover() {
-        return isset($_SESSION['role']) && $_SESSION['role'] === 'approver';
-    }
     public function isLoggedIn() {
         return isset($_SESSION['user_id']);
+    }
+    
+    public function requireLogin() {
+        if (!$this->isLoggedIn()) {
+            $this->redirect('login.php');
+        }
+    }
+    
+    public function requireApprover() {
+        $this->requireLogin();
+        if ($_SESSION['user_role'] !== 'approver' && $_SESSION['user_role'] !== 'admin') {
+            $this->redirect('dash.php');
+        }
+    }
+    
+    public function requireAdmin() {
+        $this->requireLogin();
+        if ($_SESSION['user_role'] !== 'admin') {
+            $this->redirect('dash.php');
+        }
     }
     
     public function redirect($url) {
         header("Location: " . $url);
         exit();
     }
+    
+    // ... [rest of your existing methods remain the same] ...
     
     public function formatCurrency($amount) {
         return 'KSh ' . number_format($amount, 2);
@@ -73,24 +90,6 @@ class PettyCashSystem {
         
         $result = $this->db->getSingle($sql);
         return $result ? ($result['total_income'] - $result['total_expenses']) : 0;
-    }
-       public function getCategoryTotals($type, $period = 'month') {
-        $sql = "SELECT category, SUM(amount) as total 
-                FROM transactions 
-                WHERE type = ? AND status = 'approved'";
-        
-        $params = [$type];
-        
-        if ($period === 'month') {
-            $sql .= " AND MONTH(transaction_date) = MONTH(CURRENT_DATE()) 
-                     AND YEAR(transaction_date) = YEAR(CURRENT_DATE())";
-        } elseif ($period === 'year') {
-            $sql .= " AND YEAR(transaction_date) = YEAR(CURRENT_DATE())";
-        }
-        
-        $sql .= " GROUP BY category ORDER BY total DESC";
-        
-        return $this->db->getMultiple($sql, $params);
     }
     
     public function getUserTransactions($limit = null) {
@@ -184,6 +183,25 @@ class PettyCashSystem {
         return $this->db->getMultiple($sql, [$limit]);
     }
     
+    public function getCategoryTotals($type, $period = 'month') {
+        $sql = "SELECT category, SUM(amount) as total 
+                FROM transactions 
+                WHERE type = ? AND status = 'approved'";
+        
+        $params = [$type];
+        
+        if ($period === 'month') {
+            $sql .= " AND MONTH(transaction_date) = MONTH(CURRENT_DATE()) 
+                     AND YEAR(transaction_date) = YEAR(CURRENT_DATE())";
+        } elseif ($period === 'year') {
+            $sql .= " AND YEAR(transaction_date) = YEAR(CURRENT_DATE())";
+        }
+        
+        $sql .= " GROUP BY category ORDER BY total DESC";
+        
+        return $this->db->getMultiple($sql, $params);
+    }
+    
     public function sanitize($data) {
         return htmlspecialchars(strip_tags(trim($data)));
     }
@@ -199,6 +217,11 @@ class PettyCashSystem {
     public function checkReplenishmentLimit($amount) {
         $currentBalance = $this->getCurrentBalance();
         return ($currentBalance + $amount) <= MAX_PETTY_CASH_AMOUNT;
+    }
+
+    public function getUserDetails($userId) {
+        $query = "SELECT username, email, department, role, created_at FROM users WHERE id = ?";
+        return $this->db->getSingle($query, [$userId]);
     }
 }
 

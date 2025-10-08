@@ -1,20 +1,18 @@
 <?php
 // viewtransaction.php - Page to view transaction details
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-// Redirect to login if not authenticated
-if (!$pettyCashSystem->isLoggedIn()) {
-    PettyCashSystem::redirect('index.php');
-}
+// Require login
+$pettyCashSystem->requireLogin();
 
 $pageTitle = "View Transaction";
 include 'header.php';
 
-// Get transaction ID
 $transactionId = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$transaction = PettyCashSystem::getTransaction($transactionId);
+$transaction = $pettyCashSystem->getTransaction($transactionId);
 
 if (!$transaction) {
     echo "<div class='container'><div class='alert alert-danger'>Transaction not found.</div></div>";
@@ -23,7 +21,7 @@ if (!$transaction) {
 }
 
 // Check if user has permission to view this transaction
-if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transaction['user_id'] != $_SESSION['user_id']) {
+if ($_SESSION['user_role'] !== 'approver' && $_SESSION['user_role'] !== 'admin' && $transaction['user_id'] != $_SESSION['user_id']) {
     echo "<div class='container'><div class='alert alert-danger'>You don't have permission to view this transaction.</div></div>";
     include 'footer.php';
     exit;
@@ -40,8 +38,8 @@ if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transactio
                     Transaction #TR-<?php echo str_pad($transaction['id'], 4, '0', STR_PAD_LEFT); ?>
                 </div>
                 <div>
-                    <?php echo PettyCashSystem::getTransactionTypeBadge($transaction['type']); ?>
-                    <?php echo PettyCashSystem::getStatusBadge($transaction['status']); ?>
+                    <?php echo $pettyCashSystem->getTransactionTypeBadge($transaction['type']); ?>
+                    <?php echo $pettyCashSystem->getStatusBadge($transaction['status']); ?>
                 </div>
             </div>
             
@@ -52,7 +50,7 @@ if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transactio
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Transaction Date:</div>
-                    <div class="detail-value"><?php echo PettyCashSystem::formatDate($transaction['transaction_date']); ?></div>
+                    <div class="detail-value"><?php echo $pettyCashSystem->formatDate($transaction['transaction_date']); ?></div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Category:</div>
@@ -61,7 +59,7 @@ if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transactio
                 <div class="detail-row">
                     <div class="detail-label">Amount:</div>
                     <div class="detail-value <?php echo $transaction['type'] === 'income' ? 'amount-income' : 'amount-expense'; ?>">
-                        <strong><?php echo PettyCashSystem::formatCurrency($transaction['amount']); ?></strong>
+                        <strong><?php echo $pettyCashSystem->formatCurrency($transaction['amount']); ?></strong>
                     </div>
                 </div>
                 <div class="detail-row">
@@ -70,17 +68,17 @@ if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transactio
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Submitted On:</div>
-                    <div class="detail-value"><?php echo PettyCashSystem::formatDateTime($transaction['created_at']); ?></div>
+                    <div class="detail-value"><?php echo date('j M Y g:i A', strtotime($transaction['created_at'])); ?></div>
                 </div>
                 
                 <?php if ($transaction['status'] !== 'pending'): ?>
                 <div class="detail-row">
                     <div class="detail-label">Approved/Rejected By:</div>
-                    <div class="detail-value"><?php echo $transaction['approved_by_name'] ?? 'N/A'; ?></div>
+                    <div class="detail-value"><?php echo $transaction['approved_by'] ? 'Approver' : 'N/A'; ?></div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Approved/Rejected On:</div>
-                    <div class="detail-value"><?php echo $transaction['approved_at'] ? PettyCashSystem::formatDateTime($transaction['approved_at']) : 'N/A'; ?></div>
+                    <div class="detail-value"><?php echo $transaction['approved_at'] ? date('j M Y g:i A', strtotime($transaction['approved_at'])) : 'N/A'; ?></div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Approval Notes:</div>
@@ -94,8 +92,8 @@ if (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin() && $transactio
                 <?php if ($transaction['status'] === 'pending' && $transaction['user_id'] == $_SESSION['user_id']): ?>
                     <a href="edittransaction.php?id=<?php echo $transaction['id']; ?>" class="btn btn-warning">Edit Transaction</a>
                 <?php endif; ?>
-                <?php if (PettyCashSystem::isApprover() || PettyCashSystem::isAdmin()): ?>
-                    <a href="approvalqueue.php" class="btn">Back to Approval Queue</a>
+                <?php if ($_SESSION['user_role'] === 'approver' || $_SESSION['user_role'] === 'admin'): ?>
+                    <a href="approval_queue.php" class="btn">Back to Approval Queue</a>
                 <?php endif; ?>
             </div>
         </div>

@@ -1,19 +1,18 @@
 <?php
 // reviewtransaction.php - Page for reviewing and approving transactions
 
-$root = $_SERVER['DOCUMENT_ROOT'] . '/pettycashsystem';
-require_once $root . '/config.php';
-require_once $root . '/functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-if (!$pettyCashSystem->isLoggedIn() || (!PettyCashSystem::isApprover() && !PettyCashSystem::isAdmin())) {
-    PettyCashSystem::redirect('index.php');
-}
+// Require approver role
+$pettyCashSystem->requireApprover();
 
 $pageTitle = "Review Transaction";
 include 'header.php';
 
 $transactionId = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$transaction = PettyCashSystem::getTransaction($transactionId);
+$transaction = $pettyCashSystem->getTransaction($transactionId);
 
 if (!$transaction) {
     echo "<div class='container'><div class='alert alert-danger'>Transaction not found.</div></div>";
@@ -22,16 +21,16 @@ if (!$transaction) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = PettyCashSystem::sanitize($_POST['action']);
-    $notes = PettyCashSystem::sanitize($_POST['notes']);
+    $action = $pettyCashSystem->sanitize($_POST['action']);
+    $notes = $pettyCashSystem->sanitize($_POST['notes']);
     
     if ($action === 'approve' || $action === 'reject') {
         $status = $action === 'approve' ? 'approved' : 'rejected';
-        $result = PettyCashSystem::updateTransactionStatus($transactionId, $status, $notes);
+        $result = $pettyCashSystem->updateTransactionStatus($transactionId, $status, $notes);
         
         if ($result) {
             $_SESSION['success_message'] = "Transaction " . $action . "d successfully!";
-            PettyCashSystem::redirect('approvalqueue.php');
+            $pettyCashSystem->redirect('approval_queue.php');
         } else {
             $error = "Failed to update transaction status.";
         }
@@ -66,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Date:</div>
-                    <div class="detail-value"><?php echo PettyCashSystem::formatDate($transaction['transaction_date']); ?></div>
+                    <div class="detail-value"><?php echo $pettyCashSystem->formatDate($transaction['transaction_date']); ?></div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Category:</div>
@@ -75,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="detail-row">
                     <div class="detail-label">Amount:</div>
                     <div class="detail-value <?php echo $transaction['type'] === 'income' ? 'amount-income' : 'amount-expense'; ?>">
-                        <?php echo PettyCashSystem::formatCurrency($transaction['amount']); ?>
+                        <?php echo $pettyCashSystem->formatCurrency($transaction['amount']); ?>
                     </div>
                 </div>
                 <div class="detail-row">
@@ -84,11 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Status:</div>
-                    <div class="detail-value"><?php echo PettyCashSystem::getStatusBadge($transaction['status']); ?></div>
+                    <div class="detail-value"><?php echo $pettyCashSystem->getStatusBadge($transaction['status']); ?></div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Submitted On:</div>
-                    <div class="detail-value"><?php echo PettyCashSystem::formatDateTime($transaction['created_at']); ?></div>
+                    <div class="detail-value"><?php echo date('j M Y g:i A', strtotime($transaction['created_at'])); ?></div>
                 </div>
             </div>
         </div>
@@ -117,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 
                 <div class="form-group">
-                    <a href="approvalqueue.php" class="btn">Back to Queue</a>
+                    <a href="approval_queue.php" class="btn">Back to Queue</a>
                 </div>
             </form>
         </div>

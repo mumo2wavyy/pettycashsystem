@@ -1,18 +1,17 @@
 <?php
 // approvalqueue.php - Page for approvers to review pending transactions
 
-$root = $_SERVER['DOCUMENT_ROOT'] . '/pettycashsystem';
-require_once $root . '/config.php';
-require_once $root . '/functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-if (!$pettyCashSystem->isLoggedIn() || (!$pettyCashSystem->isApprover() && !$pettyCashSystem->isAdmin())) {
-    $pettyCashSystem->redirect('index.php');
-}
+// Require approver role
+$pettyCashSystem->requireApprover();
 
 $pageTitle = "Approval Queue";
 include 'header.php';
 
-$pendingTransactions = PettyCashSystem::getPendingTransactions();
+$pendingTransactions = $pettyCashSystem->getPendingTransactions();
 ?>
 
 <div class="container">
@@ -44,15 +43,15 @@ $pendingTransactions = PettyCashSystem::getPendingTransactions();
                 <tbody>
                     <?php foreach($pendingTransactions as $transaction): ?>
                     <tr>
-                        <td><?php echo PettyCashSystem::formatDate($transaction['transaction_date']); ?></td>
+                        <td><?php echo $pettyCashSystem->formatDate($transaction['transaction_date']); ?></td>
                         <td><?php echo $transaction['user_name']; ?></td>
                         <td><?php echo ucfirst($transaction['department']); ?></td>
                         <td><?php echo $transaction['description']; ?></td>
                         <td class="<?php echo $transaction['type'] === 'income' ? 'amount-income' : 'amount-expense'; ?>">
-                            <?php echo PettyCashSystem::formatCurrency($transaction['amount']); ?>
+                            <?php echo $pettyCashSystem->formatCurrency($transaction['amount']); ?>
                         </td>
                         <td><?php echo $transaction['category']; ?></td>
-                        <td><?php echo PettyCashSystem::getTransactionTypeBadge($transaction['type']); ?></td>
+                        <td><?php echo $pettyCashSystem->getTransactionTypeBadge($transaction['type']); ?></td>
                         <td>
                             <div class="action-buttons">
                                 <a href="reviewtransaction.php?id=<?php echo $transaction['id']; ?>" class="btn">Review</a>

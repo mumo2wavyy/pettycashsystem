@@ -1,13 +1,12 @@
 <?php
 // reports.php - Page for financial reports
 
-$root = $_SERVER['DOCUMENT_ROOT'] . '/pettycashsystem';
-require_once $root . '/config.php';
-require_once $root . '/functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-if (!$pettyCashSystem->isLoggedIn()) {
-    PettyCashSystem::redirect('index.php');
-}
+// Require login
+$pettyCashSystem->requireLogin();
 
 $pageTitle = "Financial Reports";
 include 'header.php';
@@ -23,7 +22,9 @@ $expenseCategories = $pettyCashSystem->getCategoryTotals('expense', 'month');
     <div class="summary-grid">
         <div class="summary-card">
             <div class="summary-label">Current Balance</div>
-            <div class="summary-value balance-positive"><?php echo $pettyCashSystem->formatCurrency($stats['current_balance']); ?></div>
+            <div class="summary-value <?php echo $stats['current_balance'] >= 0 ? 'balance-positive' : 'balance-negative'; ?>">
+                <?php echo $pettyCashSystem->formatCurrency($stats['current_balance']); ?>
+            </div>
         </div>
         <div class="summary-card">
             <div class="summary-label">Monthly Income</div>
@@ -112,7 +113,7 @@ $expenseCategories = $pettyCashSystem->getCategoryTotals('expense', 'month');
             <div class="report-title">Recent Transactions</div>
         </div>
         <?php 
-    $recentTransactions = $pettyCashSystem->getRecentActivity(10);
+        $recentTransactions = $pettyCashSystem->getRecentActivity(10);
         if (empty($recentTransactions)): ?>
             <p>No recent transactions.</p>
         <?php else: ?>
@@ -133,7 +134,7 @@ $expenseCategories = $pettyCashSystem->getCategoryTotals('expense', 'month');
                         <td><?php echo $transaction['description']; ?></td>
                         <td><?php echo $transaction['category']; ?></td>
                         <td class="<?php echo $transaction['type'] === 'income' ? 'amount-income' : 'amount-expense'; ?>">
-                            <?php echo PettyCashSystem::formatCurrency($transaction['amount']); ?>
+                            <?php echo $pettyCashSystem->formatCurrency($transaction['amount']); ?>
                         </td>
                         <td><?php echo $pettyCashSystem->getTransactionTypeBadge($transaction['type']); ?></td>
                     </tr>

@@ -1,40 +1,41 @@
 <?php
 // addtransaction.php - Page for adding new transactions
 
-$root = $_SERVER['DOCUMENT_ROOT'] . '/pettycashsystem';
-require_once $root . '/config.php';
-require_once $root . '/functions.php';
+require_once '../config.php';
+require_once '../db.php';
+require_once '../functions.php';
 
-if (!$pettyCashSystem->isLoggedIn()) {
-    PettyCashSystem::redirect('index.php');
-}
+// Require login
+$pettyCashSystem->requireLogin();
 
 $pageTitle = "Add Transaction";
 include 'header.php';
 
+// Get transaction type from URL
 $type = isset($_GET['type']) ? $_GET['type'] : '';
 
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $type = PettyCashSystem::sanitize($_POST['type']);
-    $category = PettyCashSystem::sanitize($_POST['category']);
+    $type = $pettyCashSystem->sanitize($_POST['type']);
+    $category = $pettyCashSystem->sanitize($_POST['category']);
     $amount = floatval($_POST['amount']);
-    $description = PettyCashSystem::sanitize($_POST['description']);
-    $transaction_date = PettyCashSystem::sanitize($_POST['transaction_date']);
+    $description = $pettyCashSystem->sanitize($_POST['description']);
+    $transaction_date = $pettyCashSystem->sanitize($_POST['transaction_date']);
     
     $errors = [];
     
     if (empty($type)) $errors[] = "Transaction type is required";
     if (empty($category)) $errors[] = "Category is required";
-    if (!PettyCashSystem::validateAmount($amount)) $errors[] = "Valid amount is required";
+    if (!$pettyCashSystem->validateAmount($amount)) $errors[] = "Valid amount is required";
     if (empty($description)) $errors[] = "Description is required";
     if (empty($transaction_date)) $errors[] = "Transaction date is required";
     
-    if ($type === 'expense' && !PettyCashSystem::checkExpenseLimit($amount)) {
-        $errors[] = "Expense amount exceeds single transaction limit of " . PettyCashSystem::formatCurrency(MAX_SINGLE_EXPENSE);
+    if ($type === 'expense' && !$pettyCashSystem->checkExpenseLimit($amount)) {
+        $errors[] = "Expense amount exceeds single transaction limit of " . $pettyCashSystem->formatCurrency(MAX_SINGLE_EXPENSE);
     }
     
-    if ($type === 'income' && !PettyCashSystem::checkReplenishmentLimit($amount)) {
-        $errors[] = "Replenishment would exceed maximum petty cash balance of " . PettyCashSystem::formatCurrency(MAX_PETTY_CASH_AMOUNT);
+    if ($type === 'income' && !$pettyCashSystem->checkReplenishmentLimit($amount)) {
+        $errors[] = "Replenishment would exceed maximum petty cash balance of " . $pettyCashSystem->formatCurrency(MAX_PETTY_CASH_AMOUNT);
     }
     
     if (empty($errors)) {
@@ -47,11 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status' => 'pending'
         ];
         
-        $transactionId = PettyCashSystem::createTransaction($transactionData);
+        $transactionId = $pettyCashSystem->createTransaction($transactionData);
         
         if ($transactionId) {
             $_SESSION['success_message'] = "Transaction submitted successfully! Waiting for approval.";
-            PettyCashSystem::redirect('index.php');
+            $pettyCashSystem->redirect('dash.php');
         } else {
             $errors[] = "Failed to create transaction. Please try again.";
         }
@@ -114,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <div class="form-group">
                 <button type="submit" class="btn btn-success">Submit Transaction</button>
-                <a href="index.php" class="btn">Cancel</a>
+                <a href="dash.php" class="btn">Cancel</a>
             </div>
         </form>
     </div>
@@ -126,16 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="transaction-details">
             <div class="detail-row">
                 <div class="detail-label">Maximum Single Expense:</div>
-                <div class="detail-value amount-expense"><?php echo PettyCashSystem::formatCurrency(MAX_SINGLE_EXPENSE); ?></div>
+                <div class="detail-value amount-expense"><?php echo $pettyCashSystem->formatCurrency(MAX_SINGLE_EXPENSE); ?></div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Maximum Petty Cash Balance:</div>
-                <div class="detail-value amount-income"><?php echo PettyCashSystem::formatCurrency(MAX_PETTY_CASH_AMOUNT); ?></div>
+                <div class="detail-value amount-income"><?php echo $pettyCashSystem->formatCurrency(MAX_PETTY_CASH_AMOUNT); ?></div>
             </div>
             <div class="detail-row">
                 <div class="detail-label">Current Balance:</div>
-                <div class="detail-value <?php echo PettyCashSystem::getCurrentBalance() >= 0 ? 'balance-positive' : 'balance-negative'; ?>">
-                    <?php echo PettyCashSystem::formatCurrency(PettyCashSystem::getCurrentBalance()); ?>
+                <div class="detail-value <?php echo $pettyCashSystem->getCurrentBalance() >= 0 ? 'balance-positive' : 'balance-negative'; ?>">
+                    <?php echo $pettyCashSystem->formatCurrency($pettyCashSystem->getCurrentBalance()); ?>
                 </div>
             </div>
         </div>
