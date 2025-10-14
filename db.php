@@ -7,6 +7,7 @@ class Database {
     private $username = 'root';
     private $password = '';
     public $conn;
+    
 
     public function __construct() {
         try {
@@ -20,6 +21,11 @@ class Database {
         } catch(PDOException $exception) {
             echo "Connection error: " . $exception->getMessage();
         }
+    }
+
+    // Add this method to return the PDO connection
+    public function getPdo() {
+        return $this->conn;
     }
 
     // Simple query execution

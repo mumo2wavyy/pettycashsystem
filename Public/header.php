@@ -1,6 +1,7 @@
 <?php
 // header.php
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,7 +29,17 @@
                         <span>(<?php echo ucfirst($_SESSION['user_role']); ?>)</span>
                     </div>
                     <ul class="nav-links">
-                        <li><a href="dash.php">Dashboard</a></li>
+                        <!-- Dashboard Link (Conditional) -->
+                        <?php
+                        // Dynamically create the dashboard link based on user role
+                        if ($_SESSION['user_role'] === 'admin') {
+                            echo '<li><a href="dash.php">Dashboard</a></li>';
+                        } elseif ($_SESSION['user_role'] === 'approver') {
+                            echo '<li><a href="dash_approver.php">Dashboard</a></li>';
+                        } elseif ($_SESSION['user_role'] === 'user') {
+                            echo '<li><a href="dash_user.php">Dashboard</a></li>';
+                        }
+                        ?>
                         <li><a href="addtransaction.php">Add Transaction</a></li>
                         <li><a href="transactions.php">All Transactions</a></li>
                         <?php if ($_SESSION['user_role'] === 'approver' || $_SESSION['user_role'] === 'admin'): ?>

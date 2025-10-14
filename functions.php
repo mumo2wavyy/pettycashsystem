@@ -3,6 +3,10 @@
 
 require_once 'db.php';
 
+// Initialize global $pdo
+global $pdo;
+$pdo = (new Database())->getPdo();
+
 class PettyCashSystem {
     private $db;
     
@@ -223,8 +227,111 @@ class PettyCashSystem {
         $query = "SELECT username, email, department, role, created_at FROM users WHERE id = ?";
         return $this->db->getSingle($query, [$userId]);
     }
+    
+    public function getPdo() {
+        return $this->pdo;
+    }
 }
 
 // Create instance
 $pettyCashSystem = new PettyCashSystem();
+
+function getUserById($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function getProfilePicture($filename) {
+    if ($filename && file_exists("../uploads/profiles/" . $filename)) {
+        return "../uploads/profiles/" . $filename;
+    }
+    return "./assets/dafault-avatar.jpg"; // Default avatar
+}
+
+function handleProfilePictureUpload($user_id) {
+    $uploadDir = "../uploads/profiles/";
+    
+    // Create directory if it doesn't exist
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    
+    $file = $_FILES['profile_picture'];
+    $maxSize = 2 * 1024 * 1024; // 2MB
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    
+    // Check file size
+    if ($file['size'] > $maxSize) {
+        return ['success' => false, 'message' => 'File too large. Maximum size is 2MB.'];
+    }
+    
+    // Check file type
+    if (!in_array($file['type'], $allowedTypes)) {
+        return ['success' => false, 'message' => 'Only JPG, PNG, and GIF files are allowed.'];
+    }
+    
+    // Generate unique filename
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = "profile_" . $user_id . "_" . time() . "." . $extension;
+    $filepath = $uploadDir . $filename;
+    
+    // Move uploaded file
+    if (move_uploaded_file($file['tmp_name'], $filepath)) {
+        // Update database
+        global $pdo;
+        $stmt = $pdo->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+        if ($stmt->execute([$filename, $user_id])) {
+            return ['success' => true, 'message' => 'Profile picture updated successfully!'];
+        }
+    }
+    
+    return ['success' => false, 'message' => 'Failed to upload profile picture.'];
+}
+
+function getUserTransactions($user_id, $limit = 10) {
+    global $pdo;
+    $limit = intval($limit);
+    $stmt = $pdo->prepare("
+        SELECT * FROM transactions
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT $limit
+    ");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function countUserTransactions($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM transactions WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchColumn();
+}
+
+function countUserTransactionsByStatus($user_id, $status) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM transactions WHERE user_id = ? AND status = ?");
+    $stmt->execute([$user_id, $status]);
+    return $stmt->fetchColumn();
+}
+
+function calculateUserTotalAmount($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT SUM(
+            CASE 
+                WHEN type = 'income' THEN amount 
+                WHEN type = 'expense' THEN -amount 
+                ELSE 0 
+            END
+        ) as total 
+        FROM transactions 
+        WHERE user_id = ? AND status = 'approved'
+    ");
+    $stmt->execute([$user_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return number_format($result['total'] ?? 0, 2);
+}
 ?>

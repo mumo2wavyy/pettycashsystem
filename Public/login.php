@@ -1,11 +1,11 @@
 <?php
-// login.php - Login and Registration page
+
 
 require_once '../config.php';
 require_once '../db.php';
 require_once '../functions.php';
 
-// If already logged in, redirect to dashboard
+
 if (isset($_SESSION['user_id'])) {
     header("Location: dash.php");
     exit();
@@ -16,7 +16,7 @@ $error = '';
 $success = '';
 $active_tab = 'login';
 
-// Handle Login
+
 if (isset($_POST['login'])) {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
@@ -32,8 +32,17 @@ if (isset($_POST['login'])) {
             $_SESSION['user_name'] = $user['name'];
             $_SESSION['user_department'] = $user['department'];
             
-            header("Location: dash.php");
-            exit();
+            // After verifying credentials and setting $_SESSION['user_id'] and $_SESSION['user_role']
+            if ($_SESSION['user_role'] === 'admin') {
+                header('Location: dash_admin.php');
+                exit;
+            } elseif ($_SESSION['user_role'] === 'approver') {
+                header('Location: dash_approver.php');
+                exit;
+            } else {
+                header('Location: dash_user.php');
+                exit;
+            }
         } else {
             $error = "Invalid email or password";
             $active_tab = 'login';
@@ -44,7 +53,7 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Handle Registration
+
 if (isset($_POST['register'])) {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
@@ -54,7 +63,7 @@ if (isset($_POST['register'])) {
     
     $errors = [];
     
-    // Validation
+    
     if (empty($name)) $errors[] = "Full name is required";
     if (empty($email)) $errors[] = "Email is required";
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Invalid email format";
@@ -63,7 +72,7 @@ if (isset($_POST['register'])) {
     if ($password !== $confirm_password) $errors[] = "Passwords do not match";
     if (empty($department)) $errors[] = "Department is required";
     
-    // Check if email already exists
+    
     if (empty($errors)) {
         $sql = "SELECT id FROM users WHERE email = ?";
         $existing_user = $db->getSingle($sql, [$email]);
@@ -73,7 +82,7 @@ if (isset($_POST['register'])) {
     }
     
     if (empty($errors)) {
-        // Hash password and create user
+        //   
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $sql = "INSERT INTO users (name, email, password, role, department) VALUES (?, ?, ?, 'user', ?)";
         $result = $db->executeQuery($sql, [$name, $email, $hashed_password, $department]);
@@ -99,6 +108,8 @@ if (isset($_POST['register'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Petty Cash System - Login</title>
     <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
     <style>
         .tab-container {
             max-width: 500px;
@@ -199,9 +210,12 @@ if (isset($_POST['register'])) {
                                    value="<?php echo isset($_POST['email']) && $active_tab === 'login' ? htmlspecialchars($_POST['email']) : ''; ?>">
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label for="login-password">Password</label>
                             <input type="password" id="login-password" name="password" class="form-control" required>
+                            <span class="toggle-password" onclick="togglePassword('login-password', this)" style="position: absolute; right: 10px; top: 38px; cursor: pointer;">
+                                <i class="fa fa-eye"></i>
+                            </span>
                         </div>
                         
                         <div class="form-group">
@@ -209,12 +223,14 @@ if (isset($_POST['register'])) {
                         </div>
                     </form>
                     
-                    <div class="demo-accounts">
+                   <!--
+                   <div class="demo-accounts">
                         <h4>Demo Accounts:</h4>
                         <p><strong>Admin:</strong> admin@company.co.ke / password</p>
                         <p><strong>Approver:</strong> approver@company.co.ke / password</p>
                         <p><strong>User:</strong> user@company.co.ke / password</p>
-                    </div>
+                    </div> 
+                   -->
                 </div>
                 
                 <!-- Registration Form -->
@@ -253,15 +269,21 @@ if (isset($_POST['register'])) {
                             </select>
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label for="register-password">Password</label>
                             <input type="password" id="register-password" name="password" class="form-control" required 
                                    minlength="6" placeholder="At least 6 characters">
+                            <span class="toggle-password" onclick="togglePassword('register-password', this)" style="position: absolute; right: 10px; top: 38px; cursor: pointer;">
+                                <i class="fa fa-eye"></i>
+                            </span>
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="position: relative;">
                             <label for="register-confirm-password">Confirm Password</label>
                             <input type="password" id="register-confirm-password" name="confirm_password" class="form-control" required>
+                            <span class="toggle-password" onclick="togglePassword('register-confirm-password', this)" style="position: absolute; right: 10px; top: 38px; cursor: pointer;">
+                                <i class="fa fa-eye"></i>
+                            </span>
                         </div>
                         
                         <div class="form-group">
@@ -285,7 +307,7 @@ if (isset($_POST['register'])) {
 
     <script>
         function switchTab(tabName) {
-            // Update tabs
+            
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
                 if (tab.dataset.tab === tabName) {
@@ -293,7 +315,7 @@ if (isset($_POST['register'])) {
                 }
             });
             
-            // Update content
+            
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('active');
                 if (pane.id === tabName + '-tab') {
@@ -302,14 +324,14 @@ if (isset($_POST['register'])) {
             });
         }
         
-        // Add click event to tabs
+        
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', function() {
                 switchTab(this.dataset.tab);
             });
         });
         
-        // Password confirmation validation
+       
         const password = document.getElementById('register-password');
         const confirmPassword = document.getElementById('register-confirm-password');
         
@@ -325,6 +347,20 @@ if (isset($_POST['register'])) {
             password.addEventListener('change', validatePassword);
             confirmPassword.addEventListener('keyup', validatePassword);
         }
+        
+        function togglePassword(inputId, iconSpan) {
+            const input = document.getElementById(inputId);
+            const icon = iconSpan.querySelector('i');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
     </script>
 </body>
-</html>
+</html
