@@ -23,12 +23,12 @@ class Database {
         }
     }
 
-    // Add this method to return the PDO connection
+    
     public function getPdo() {
         return $this->conn;
     }
 
-    // Simple query execution
+    
     public function executeQuery($sql, $params = []) {
         try {
             $stmt = $this->conn->prepare($sql);
@@ -40,7 +40,7 @@ class Database {
         }
     }
 
-    // Get single row
+    
     public function getSingle($sql, $params = []) {
         $stmt = $this->executeQuery($sql, $params);
         if ($stmt) {
@@ -49,7 +49,7 @@ class Database {
         return false;
     }
 
-    // Get multiple rows
+    
     public function getMultiple($sql, $params = []) {
         $stmt = $this->executeQuery($sql, $params);
         if ($stmt) {
@@ -58,7 +58,7 @@ class Database {
         return [];
     }
 
-    // Get row count
+    
     public function getCount($sql, $params = []) {
         $stmt = $this->executeQuery($sql, $params);
         if ($stmt) {
@@ -67,7 +67,7 @@ class Database {
         return 0;
     }
 
-    // Get last insert ID
+    
     public function lastInsertId() {
         return $this->conn->lastInsertId();
     }

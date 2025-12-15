@@ -1,9 +1,9 @@
 <?php
-// functions.php - Petty Cash System - With authentication
+
 
 require_once 'db.php';
 
-// Initialize global $pdo
+
 global $pdo;
 $pdo = (new Database())->getPdo();
 
@@ -43,7 +43,7 @@ class PettyCashSystem {
         exit();
     }
     
-    // ... [rest of your existing methods remain the same] ...
+   
     
     public function formatCurrency($amount) {
         return 'KSh ' . number_format($amount, 2);
