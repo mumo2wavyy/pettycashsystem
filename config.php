@@ -14,7 +14,7 @@ define('APP_VERSION', '1.0');
 
 // Petty Cash Settings
 define('MAX_PETTY_CASH_AMOUNT', 10000.00);
-define('MAX_SINGLE_EXPENSE', 2000.00);
+define('MAX_SINGLE_EXPENSE', 500.00);
 
 // Start session
 if (session_status() == PHP_SESSION_NONE) {
