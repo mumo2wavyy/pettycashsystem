@@ -20,7 +20,6 @@ if ($_SESSION['user_role'] !== 'admin') {
         <a href="usermanagement.php" class="quick-action-btn">User Management</a>
         <a href="reports.php" class="quick-action-btn">Financial Reports</a>
         <a href="auditlogs.php" class="quick-action-btn">Audit Logs</a>
-        <a href="dbmaintenance.php" class="quick-action-btn">Database Maintenance</a>
     </div>
     <h2>System Overview</h2>
     <!-- Add admin-specific stats and controls here -->
